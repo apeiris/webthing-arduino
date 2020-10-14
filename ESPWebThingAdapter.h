@@ -190,7 +190,10 @@ public:
     this->server.addHandler(ws);
 #endif
   }
-
+ThingDevice* getFirstDevice ()
+{
+  return this->firstDevice;
+}
 private:
   AsyncWebServer server;
 
