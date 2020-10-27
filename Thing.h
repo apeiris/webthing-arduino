@@ -360,6 +360,7 @@ public:
       callback(newValue);
     }
   }
+  INTEGER propertyDbID=-1;
 };
 
 #ifndef WITHOUT_WS
