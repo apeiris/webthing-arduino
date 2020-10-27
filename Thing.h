@@ -207,8 +207,6 @@ class ThingItem {
 public:
   String id;
   String description;
-  //INTE propetyDbId
-  int propertyDbId=-1;
   ThingDataType type;
   String atType;
   ThingItem *next = nullptr;
@@ -335,7 +333,7 @@ private:
 
 public:
   const char **propertyEnum = nullptr;
-
+  int propertyDbId =-1;
   ThingProperty(const char *id_, const char *description_, ThingDataType type_,
                 const char *atType_,
                 void (*callback_)(ThingPropertyValue) = nullptr)
