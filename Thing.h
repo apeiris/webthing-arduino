@@ -207,6 +207,8 @@ class ThingItem {
 public:
   String id;
   String description;
+  //INTE propetyDbId
+  int propertyDbId=-1;
   ThingDataType type;
   String atType;
   ThingItem *next = nullptr;
@@ -360,7 +362,7 @@ public:
       callback(newValue);
     }
   }
-  INTEGER propertyDbID=-1;
+
 };
 
 #ifndef WITHOUT_WS
