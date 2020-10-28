@@ -209,6 +209,7 @@ public:
   String description;
   ThingDataType type;
   String atType;
+  int propertyDbId=-1;
   ThingItem *next = nullptr;
 
   bool readOnly = false;
@@ -330,21 +331,16 @@ private:
 class ThingProperty : public ThingItem {
 private:
   void (*callback)(ThingPropertyValue);
-
 public:
   const char **propertyEnum = nullptr;
-  int propertyDbId =-1;
-  ThingProperty(const char *id_, const char *description_, ThingDataType type_,
-                const char *atType_,
+
+  ThingProperty(const char *id_, const char *description_, ThingDataType type_, const char *atType_,
                 void (*callback_)(ThingPropertyValue) = nullptr)
       : ThingItem(id_, description_, type_, atType_), callback(callback_) {}
-
   void serialize(JsonObject obj, String deviceId, String resourceType) {
     ThingItem::serialize(obj, deviceId, resourceType);
-
     const char **enumVal = propertyEnum;
     bool hasEnum = propertyEnum != nullptr && *propertyEnum != nullptr;
-
     if (hasEnum) {
       enumVal = propertyEnum;
       JsonArray propEnum = obj.createNestedArray("enum");
@@ -354,13 +350,11 @@ public:
       }
     }
   }
-
   void changed(ThingPropertyValue newValue) {
     if (callback != nullptr) {
       callback(newValue);
     }
   }
-
 };
 
 #ifndef WITHOUT_WS
