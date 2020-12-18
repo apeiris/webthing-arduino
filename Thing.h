@@ -8,7 +8,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
+#17th Dec 2020 ap
 #pragma once
 
 #if !defined(ESP8266) && !defined(ESP32) && !defined(WITHOUT_WS)
@@ -209,7 +209,7 @@ public:
   String description;
   ThingDataType type;
   String atType;
-  int propertyDbId=-1;
+  int propertyDbId = -1;
   ThingItem *next = nullptr;
 
   bool readOnly = false;
@@ -222,8 +222,13 @@ public:
   ThingItem(const char *id_, const char *description_, ThingDataType type_,
             const char *atType_)
       : id(id_), description(description_), type(type_), atType(atType_) {}
-
-  void setValue(ThingDataValue newValue) {
+  void setPropertyDbId(int n) 
+  {
+    this->propertyDbId = n;
+    this->hasChanged = true;
+  }
+ 
+   void setValue(ThingDataValue newValue) {
     this->value = newValue;
     this->hasChanged = true;
   }
@@ -331,10 +336,12 @@ private:
 class ThingProperty : public ThingItem {
 private:
   void (*callback)(ThingPropertyValue);
+
 public:
   const char **propertyEnum = nullptr;
 
-  ThingProperty(const char *id_, const char *description_, ThingDataType type_, const char *atType_,
+  ThingProperty(const char *id_, const char *description_, ThingDataType type_,
+                const char *atType_,
                 void (*callback_)(ThingPropertyValue) = nullptr)
       : ThingItem(id_, description_, type_, atType_), callback(callback_) {}
   void serialize(JsonObject obj, String deviceId, String resourceType) {
@@ -759,6 +766,7 @@ public:
       JsonObject properties = descr.createNestedObject("properties");
       while (property != nullptr) {
         JsonObject obj = properties.createNestedObject(property->id);
+        obj["dbId"] = property->propertyDbId;
         property->serialize(obj, id, "properties");
         property = (ThingProperty *)property->next;
       }
