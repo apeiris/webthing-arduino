@@ -7,6 +7,9 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+ESP_LOGI(TAG," ",);
+
  */
 
 #define LARGE_JSON_BUFFERS 1
@@ -18,12 +21,16 @@
 #ifdef ESP32
 #include <analogWrite.h>
 #endif
+#include "esp_log.h"
+//--------------------- forward declarations-----------------------
 
-const char *ssid = "......";
-const char *password = "..........";
-
+//----------------------------------------------------------------- 
+static const char *TAG="*";
+const char *ssid = "Peiris_Wifi";
+const char *password = "22051954";
+static int loopInterval =5000;
 #if defined(LED_BUILTIN)
-const int lampPin = LED_BUILTIN;
+const int ledPin = LED_BUILTIN;
 #else
 const int lampPin = 13; // manually configure LED pin
 #endif
@@ -34,30 +41,27 @@ WebThingAdapter *adapter;
 
 const char *lampTypes[] = {"OnOffSwitch", "Light", nullptr};
 ThingDevice lamp("urn:dev:ops:my-lamp-1234", "My Lamp", lampTypes);
-
-ThingProperty lampOn("on", "Whether the lamp is turned on", BOOLEAN,
-                     "OnOffProperty");
-ThingProperty lampLevel("brightness", "The level of light from 0-100", INTEGER,
-                        "BrightnessProperty");
+ThingProperty lampOn("on", "Whether the lamp is turned on", BOOLEAN,"OnOffProperty");
+ThingProperty lampLevel("brightness","The level of light from 0-100", INTEGER,"BrightnessProperty");
 
 StaticJsonDocument<256> fadeInput;
 JsonObject fadeInputObj = fadeInput.to<JsonObject>();
-ThingAction fade("fade", "Fade", "Fade the lamp to a given level",
-                 "FadeAction", &fadeInputObj, action_generator);
-ThingEvent overheated("overheated",
-                      "The lamp has exceeded its safe operating temperature",
-                      NUMBER, "OverheatedEvent");
+ThingAction fade("fade", "Fade", "Fade the lamp to a given level","FadeAction", &fadeInputObj, action_generator);
+ThingEvent overheated("overheated","The lamp has exceeded its safe operating temperature",NUMBER, "OverheatedEvent");
 
 bool lastOn = true;
-
+void toggleLed()
+{
+  ESP_LOGI(TAG,"lastOn=%d ",lastOn);
+    digitalWrite(ledPin, lastOn ? LOW : HIGH);
+    lastOn = !lastOn;
+}
 void setup(void) {
-  pinMode(lampPin, OUTPUT);
-  digitalWrite(lampPin, HIGH);
   Serial.begin(115200);
-  Serial.println("");
-  Serial.print("Connecting to \"");
-  Serial.print(ssid);
-  Serial.println("\"");
+  
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, HIGH);
+  ESP_LOGI(TAG,"Using LED_BUILTIN %d",LED_BUILTIN);
 #if defined(ESP8266) || defined(ESP32)
   WiFi.mode(WIFI_STA);
 #endif
@@ -70,15 +74,10 @@ void setup(void) {
     Serial.print(".");
   }
 
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
+   ESP_LOGI(TAG,"Connected to %s IP:%s",ssid,WiFi.localIP().toString().c_str());
   Serial.println(WiFi.localIP());
   adapter = new WebThingAdapter("led-lamp", WiFi.localIP());
-
   lamp.description = "A web connected lamp";
-
   lampOn.title = "On/Off";
   lamp.addProperty(&lampOn);
 
@@ -89,16 +88,13 @@ void setup(void) {
   lamp.addProperty(&lampLevel);
 
   fadeInputObj["type"] = "object";
-  JsonObject fadeInputProperties =
-      fadeInputObj.createNestedObject("properties");
-  JsonObject brightnessInput =
-      fadeInputProperties.createNestedObject("brightness");
+  JsonObject fadeInputProperties =fadeInputObj.createNestedObject("properties");
+  JsonObject brightnessInput = fadeInputProperties.createNestedObject("brightness");
   brightnessInput["type"] = "integer";
   brightnessInput["minimum"] = 0;
   brightnessInput["maximum"] = 100;
   brightnessInput["unit"] = "percent";
-  JsonObject durationInput =
-      fadeInputProperties.createNestedObject("duration");
+  JsonObject durationInput =fadeInputProperties.createNestedObject("duration");
   durationInput["type"] = "integer";
   durationInput["minimum"] = 1;
   durationInput["unit"] = "milliseconds";
@@ -106,47 +102,32 @@ void setup(void) {
 
   overheated.unit = "degree celsius";
   lamp.addEvent(&overheated);
-
   adapter->addDevice(&lamp);
   adapter->begin();
-
   Serial.println("HTTP server started");
   Serial.print("http://");
   Serial.print(WiFi.localIP());
   Serial.print("/things/");
   Serial.println(lamp.id);
-
 #ifdef analogWriteRange
   analogWriteRange(255);
 #endif
-
   // set initial values
   ThingPropertyValue initialOn = {.boolean = true};
   lampOn.setValue(initialOn);
   (void)lampOn.changedValueOrNull();
-
   ThingPropertyValue initialLevel = {.integer = 50};
   lampLevel.setValue(initialLevel);
   (void)lampLevel.changedValueOrNull();
-
-  analogWrite(lampPin, 128);
-
-  randomSeed(analogRead(0));
+  //randomSeed(analogRead(0));
 }
 
 void loop(void) {
   adapter->update();
   bool on = lampOn.getValue().boolean;
-  if (on) {
-    int level = map(lampLevel.getValue().number, 0, 100, 255, 0);
-    analogWrite(lampPin, level);
-  } else {
-    analogWrite(lampPin, 255);
-  }
-
-  if (lastOn != on) {
-    lastOn = on;
-  }
+  if( on != lastOn) toggleLed();
+  ESP_LOGI(TAG,"lamp state =%d ",on);
+  delay(loopInterval);
 }
 
 void do_fade(const JsonVariant &input) {
@@ -159,7 +140,11 @@ void do_fade(const JsonVariant &input) {
   ThingDataValue value = {.integer = brightness};
   lampLevel.setValue(value);
   int level = map(brightness, 0, 100, 255, 0);
-  analogWrite(lampPin, level);
+  //analogWrite(ledPin, level);
+
+  ESP_LOGI(TAG,"toggleLed(),level=%d ",level);
+
+
 
   ThingDataValue val;
   val.number = 102;
@@ -168,5 +153,8 @@ void do_fade(const JsonVariant &input) {
 }
 
 ThingActionObject *action_generator(DynamicJsonDocument *input) {
+  ESP_LOGI(TAG," *input %s",(char*)input);
   return new ThingActionObject("fade", input, do_fade, nullptr);
 }
+
+

@@ -8,7 +8,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#17th Dec 2020 ap
+/* 17th Dec 2020 ap */
 #pragma once
 
 #if !defined(ESP8266) && !defined(ESP32) && !defined(WITHOUT_WS)
@@ -97,7 +97,6 @@ public:
 
   void serialize(JsonObject obj, String deviceId) {
     JsonObject data = obj.createNestedObject(name);
-
     JsonObject actionObj = actionRequest->as<JsonObject>();
     JsonObject inner = actionObj[name];
     data["input"] = inner["input"];
@@ -110,6 +109,11 @@ public:
     }
 
     data["href"] = "/things/" + deviceId + "/actions/" + name + "/" + id;
+    // debugger
+    String s = "";
+    serializeJson(data, s);
+    ESP_LOGI(TAG, "DATA after obj.CreateNestedObject(\"%s\") \n\t\t  %s\n",name.c_str(), s.c_str());
+    // end debugger
   }
 
   void setStatus(const char *s) {
@@ -222,13 +226,12 @@ public:
   ThingItem(const char *id_, const char *description_, ThingDataType type_,
             const char *atType_)
       : id(id_), description(description_), type(type_), atType(atType_) {}
-  void setPropertyDbId(int n) 
-  {
+  void setPropertyDbId(int n) {
     this->propertyDbId = n;
     this->hasChanged = true;
   }
- 
-   void setValue(ThingDataValue newValue) {
+
+  void setValue(ThingDataValue newValue) {
     this->value = newValue;
     this->hasChanged = true;
   }
@@ -346,6 +349,7 @@ public:
       : ThingItem(id_, description_, type_, atType_), callback(callback_) {}
   void serialize(JsonObject obj, String deviceId, String resourceType) {
     ThingItem::serialize(obj, deviceId, resourceType);
+
     const char **enumVal = propertyEnum;
     bool hasEnum = propertyEnum != nullptr && *propertyEnum != nullptr;
     if (hasEnum) {
@@ -360,6 +364,7 @@ public:
   void changed(ThingPropertyValue newValue) {
     if (callback != nullptr) {
       callback(newValue);
+      ESP_LOGI(TAG, "callback newValue=%d\n", newValue);
     }
   }
 };
